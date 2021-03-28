@@ -6,7 +6,7 @@ Created on Wed Mar 18 22:06:25 2020
 """
 
 
-import os
+import os, re
 from pathlib import Path
 
 from tensorflow.keras import applications, models, Model
@@ -122,7 +122,10 @@ def extract_features(filepath, model='ResNet50', write_to=None, recursive=False)
         
     # And the image filenames
     img_fns = [fp.replace('\\', '/').rsplit('/', 1)[-1] for fp in img_fps]
-    
+    # And the labels for the images
+    reg = re.compile(r'rid-(\d+)-\d+-frame_\d+.png')
+    img_labels = [reg.match(x).group(1) for x in img_fns]
+
     print('Found {} images'.format(len(img_fns)))
     
     # Run the extraction over each image
@@ -137,10 +140,13 @@ def extract_features(filepath, model='ResNet50', write_to=None, recursive=False)
     features_df = DF(features, dtype=object)
     id_col = DF(img_fns, dtype=str)
     features_df.insert(0, 'ID', id_col)
+    labels_df = DF(img_labels, dtype=str)
+    labels_df.insert(0, 'ID', id_col)
     
     if write_to is not None:
         try:
-            features_df.to_csv(write_to, index=False)
+            features_df.to_csv(write_to + 'features.csv', index=False)
+            labels_df.to_csv(write_to + 'labels.csv', index=False)
             print('Wrote features to: "{}"'.format(write_to))
         except Exception as e:
             print('WARNING: Feature extraction could not write to file: "{}"'.format(e))
